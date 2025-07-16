@@ -1,0 +1,25 @@
+{
+  "name": "psynet-homepage",
+  "version": "1.0.0",
+  "description": "PSYNET 라이브스코어 예측 홈페이지",
+  "main": "index.html",
+  "scripts": {
+    "dev": "vercel dev",
+    "build": "echo 'Static site - no build needed'",
+    "deploy": "vercel --prod"
+  },
+  "dependencies": {
+    "@notionhq/client": "^2.2.3"
+  },
+  "devDependencies": {
+    "vercel": "^33.0.1"
+  },
+  "keywords": [
+    "notion",
+    "vercel",
+    "serverless",
+    "psynet"
+  ],
+  "author": "PSYNET",
+  "license": "MIT"
+}
