@@ -1,0 +1,900 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PSYNET 라이브스코어 예측</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;600;700&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+        }
+
+        body {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Noto Sans KR', sans-serif;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .phone-container {
+            position: relative;
+            width: 320px;
+            height: 650px;
+            background: #000;
+            border: 3px solid #10b981;
+            border-radius: 40px;
+            padding: 8px;
+            box-shadow: 
+                0 0 30px rgba(16, 185, 129, 0.3),
+                inset 0 0 20px rgba(16, 185, 129, 0.1);
+        }
+
+        .phone-screen {
+            width: 100%;
+            height: 100%;
+            background: #0f172a;
+            border: 2px solid #1e293b;
+            border-radius: 32px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .notch {
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 150px;
+            height: 30px;
+            background: #0f172a;
+            border-radius: 0 0 20px 20px;
+            border: 2px solid #1e293b;
+            border-top: none;
+            z-index: 10;
+        }
+
+        .status-bar {
+            height: 44px;
+            background: #0f172a;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 20px;
+            color: #10b981;
+            font-size: 12px;
+            font-weight: 600;
+            border-radius: 32px 32px 0 0;
+            border-bottom: 1px solid #1e293b;
+        }
+
+        .app-content {
+            height: calc(100% - 44px);
+            background: #0f172a;
+            padding: 20px 15px;
+            overflow-y: auto;
+            /* 스크롤바 숨기기 */
+            scrollbar-width: none; /* Firefox */
+            -ms-overflow-style: none; /* IE and Edge */
+        }
+
+        /* 웹킷 브라우저 (Chrome, Safari)에서 스크롤바 숨기기 */
+        .app-content::-webkit-scrollbar {
+            display: none;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        .logo {
+            color: #10b981;
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+
+        .subtitle {
+            color: #64748b;
+            font-size: 12px;
+            margin-bottom: 15px;
+        }
+
+        .live-badge {
+            display: inline-flex;
+            align-items: center;
+            background: #dc2626;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 10px;
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+
+        .live-dot {
+            width: 6px;
+            height: 6px;
+            background: white;
+            border-radius: 50%;
+            margin-right: 5px;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .match-section {
+            background: #1e293b;
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 15px;
+            border: 1px solid #334155;
+        }
+
+        .match-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .league-name {
+            color: #10b981;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .match-time {
+            color: #64748b;
+            font-size: 10px;
+        }
+
+        .match-teams {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .team {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            flex: 1;
+        }
+
+        .team-name {
+            color: #e2e8f0;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 5px;
+            text-align: center;
+        }
+
+        .team-logo {
+            width: 40px;
+            height: 40px;
+            background: #334155;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            margin-bottom: 8px;
+        }
+
+        .vs {
+            color: #64748b;
+            font-size: 14px;
+            font-weight: 700;
+            margin: 0 15px;
+        }
+
+        .score {
+            color: #10b981;
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        .prediction-section {
+            background: #334155;
+            border-radius: 8px;
+            padding: 12px;
+            margin-top: 10px;
+        }
+
+        .prediction-title {
+            color: #e2e8f0;
+            font-size: 11px;
+            font-weight: 600;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .prediction-options {
+            display: flex;
+            gap: 8px;
+        }
+
+        .prediction-btn {
+            flex: 1;
+            background: #475569;
+            color: #e2e8f0;
+            border: none;
+            border-radius: 6px;
+            padding: 10px 5px;
+            font-size: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .prediction-btn:hover {
+            background: #10b981;
+            transform: translateY(-1px);
+        }
+
+        .prediction-btn.selected {
+            background: #10b981;
+            color: white;
+        }
+
+        .odds {
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .result-section {
+            background: #1e293b;
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-left: 4px solid #10b981;
+        }
+
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .result-title {
+            color: #10b981;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .profit {
+            color: #22c55e;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .loss {
+            color: #ef4444;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .stats-section {
+            background: #1e293b;
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+
+        .stats-title {
+            color: #e2e8f0;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            text-align: center;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 8px;
+            background: #334155;
+            border-radius: 6px;
+        }
+
+        .stat-value {
+            color: #10b981;
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 2px;
+        }
+
+        .stat-label {
+            color: #64748b;
+            font-size: 10px;
+        }
+
+        .participate-section {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            margin-bottom: 15px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .participate-section:hover {
+            transform: translateY(-2px);
+        }
+
+        .participate-title {
+            color: white;
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .participate-subtitle {
+            color: rgba(255,255,255,0.9);
+            font-size: 11px;
+            margin-bottom: 12px;
+        }
+
+        .participate-stats {
+            display: flex;
+            justify-content: space-around;
+            color: white;
+            font-size: 10px;
+        }
+
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background: #1e293b;
+            border-radius: 12px;
+            padding: 25px;
+            max-width: 300px;
+            width: 90%;
+            border: 1px solid #334155;
+        }
+
+        .modal-title {
+            color: #10b981;
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            color: #e2e8f0;
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            background: #334155;
+            border: 1px solid #475569;
+            border-radius: 6px;
+            color: #e2e8f0;
+            font-size: 14px;
+            outline: none;
+        }
+
+        .form-group input:focus {
+            border-color: #10b981;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .modal-btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .modal-btn.primary {
+            background: #10b981;
+            color: white;
+        }
+
+        .modal-btn.primary:hover {
+            background: #059669;
+        }
+
+        .modal-btn.secondary {
+            background: #475569;
+            color: #e2e8f0;
+        }
+
+        .modal-btn.secondary:hover {
+            background: #64748b;
+        }
+
+        .floating-stats {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #10b981;
+            color: white;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            display: none;
+            z-index: 500;
+            animation: fadeInOut 2s ease-in-out;
+        }
+
+        @keyframes fadeInOut {
+            0%, 100% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+            50% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+        }
+    </style>
+</head>
+<body>
+    <div class="phone-container">
+        <div class="phone-screen">
+            <div class="notch"></div>
+            <div class="status-bar">
+                <span>LIVE SCORE</span>
+                <span>●●●●●</span>
+                <span>🔋 100%</span>
+            </div>
+            
+            <div class="app-content">
+                <div class="header">
+                    <div class="logo">PSYNET SCORE</div>
+                    <div class="subtitle">실시간 승부예측 플랫폼</div>
+                    <div class="live-badge">
+                        <div class="live-dot"></div>
+                        LIVE
+                    </div>
+                </div>
+
+                <!-- 라이브 경기 -->
+                <div class="match-section">
+                    <div class="match-header">
+                        <div class="league-name">EPL 프리미어리그</div>
+                        <div class="match-time">진행중 67'</div>
+                    </div>
+                    
+                    <div class="match-teams">
+                        <div class="team">
+                            <div class="team-logo">⚽</div>
+                            <div class="team-name">맨시티</div>
+                            <div class="score">2</div>
+                        </div>
+                        <div class="vs">VS</div>
+                        <div class="team">
+                            <div class="team-logo">⚽</div>
+                            <div class="team-name">첼시</div>
+                            <div class="score">1</div>
+                        </div>
+                    </div>
+
+                    <div class="prediction-section">
+                        <div class="prediction-title">실시간 승부예측 (최종결과)</div>
+                        <div class="prediction-options">
+                            <button class="prediction-btn" onclick="predict('home', this)">
+                                <span>맨시티 승</span>
+                                <span class="odds">1.8배</span>
+                            </button>
+                            <button class="prediction-btn" onclick="predict('draw', this)">
+                                <span>무승부</span>
+                                <span class="odds">3.2배</span>
+                            </button>
+                            <button class="prediction-btn" onclick="predict('away', this)">
+                                <span>첼시 승</span>
+                                <span class="odds">4.1배</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 예정 경기 -->
+                <div class="match-section">
+                    <div class="match-header">
+                        <div class="league-name">라리가</div>
+                        <div class="match-time">오늘 22:00</div>
+                    </div>
+                    
+                    <div class="match-teams">
+                        <div class="team">
+                            <div class="team-logo">🏆</div>
+                            <div class="team-name">레알 마드리드</div>
+                        </div>
+                        <div class="vs">VS</div>
+                        <div class="team">
+                            <div class="team-logo">🔵</div>
+                            <div class="team-name">바르셀로나</div>
+                        </div>
+                    </div>
+
+                    <div class="prediction-section">
+                        <div class="prediction-title">경기 전 승부예측</div>
+                        <div class="prediction-options">
+                            <button class="prediction-btn" onclick="predict('home2', this)">
+                                <span>레알 승</span>
+                                <span class="odds">2.1배</span>
+                            </button>
+                            <button class="prediction-btn" onclick="predict('draw2', this)">
+                                <span>무승부</span>
+                                <span class="odds">3.0배</span>
+                            </button>
+                            <button class="prediction-btn" onclick="predict('away2', this)">
+                                <span>바르셀로나 승</span>
+                                <span class="odds">3.5배</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 완료된 경기 결과 -->
+                <div class="result-section">
+                    <div class="result-header">
+                        <div class="result-title">✅ 예측 적중!</div>
+                        <div class="profit">+15만원</div>
+                    </div>
+                    <div style="color: #64748b; font-size: 11px;">
+                        토트넘 vs 아스날 (토트넘 승 예측) - 2:1 승리
+                    </div>
+                </div>
+
+                <div class="result-section">
+                    <div class="result-header">
+                        <div class="result-title">❌ 예측 실패</div>
+                        <div class="loss">-5만원</div>
+                    </div>
+                    <div style="color: #64748b; font-size: 11px;">
+                        리버풀 vs 애버튼 (리버풀 승 예측) - 1:1 무승부
+                    </div>
+                </div>
+
+                <!-- 통계 -->
+                <div class="stats-section">
+                    <div class="stats-title">📊 나의 예측 통계</div>
+                    <div class="stats-grid">
+                        <div class="stat-item">
+                            <div class="stat-value">73%</div>
+                            <div class="stat-label">적중률</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value">+180만</div>
+                            <div class="stat-label">이번 달 수익</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value">47경기</div>
+                            <div class="stat-label">예측 횟수</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value">2.3배</div>
+                            <div class="stat-label">평균 배당</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 리그 참여 섹션 -->
+                <div class="participate-section" onclick="openModal('livescore')">
+                    <div class="participate-title">🚀 라이브스코어 리그 참여</div>
+                    <div class="participate-subtitle">앱 개선 아이디어 제안하고 함께 만들어가요!</div>
+                    <div class="participate-stats">
+                        <span>참여자 47명</span>
+                        <span>•</span>
+                        <span>채택률 73%</span>
+                        <span>•</span>
+                        <span>최고 수익 850만원</span>
+                    </div>
+                </div>
+
+                <div class="participate-section" onclick="openModal('hideandseek')" style="background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); margin-top: 15px;">
+                    <div class="participate-title">💬 하이데어 리그 참여</div>
+                    <div class="participate-subtitle">SNS 기능 개선 아이디어로 앱을 혁신해보세요!</div>
+                    <div class="participate-stats">
+                        <span>참여자 52명</span>
+                        <span>•</span>
+                        <span>채택률 68%</span>
+                        <span>•</span>
+                        <span>평균 수익 320만원</span>
+                    </div>
+                </div>
+
+                <!-- 최근 채택된 아이디어들 -->
+                <div class="stats-section">
+                    <div class="stats-title">🏆 최근 채택된 개선 아이디어</div>
+                    <div style="space-y: 8px;">
+                        <div style="background: #334155; padding: 10px; border-radius: 6px; margin-bottom: 8px; border-left: 3px solid #10b981;">
+                            <div style="color: #e2e8f0; font-size: 11px; font-weight: 600;">실시간 채팅 번역 기능</div>
+                            <div style="color: #64748b; font-size: 9px; margin-top: 2px;">김○○님 제안 → 채택 → 보상 45만원</div>
+                        </div>
+                        <div style="background: #334155; padding: 10px; border-radius: 6px; margin-bottom: 8px; border-left: 3px solid #3b82f6;">
+                            <div style="color: #e2e8f0; font-size: 11px; font-weight: 600;">다크모드 + 컬러 테마</div>
+                            <div style="color: #64748b; font-size: 9px; margin-top: 2px;">박○○님 제안 → 개발중 → 예상 보상 30만원</div>
+                        </div>
+                        <div style="background: #334155; padding: 10px; border-radius: 6px; margin-bottom: 8px; border-left: 3px solid #f59e0b;">
+                            <div style="color: #e2e8f0; font-size: 11px; font-weight: 600;">AI 경기 분석 위젯</div>
+                            <div style="color: #64748b; font-size: 9px; margin-top: 2px;">이○○님 제안 → 검토중</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 모달 -->
+    <div class="modal" id="modal">
+        <div class="modal-content">
+            <div class="modal-title" id="modalTitle">리그 참여 신청</div>
+            <div style="color: #64748b; font-size: 11px; margin-bottom: 20px; text-align: center;" id="modalDesc">
+                앱 개선 아이디어를 제안하고 채택되면 보상을 받으세요!
+            </div>
+            <div class="form-group">
+                <label for="userName">이름</label>
+                <input type="text" id="userName" placeholder="이름을 입력하세요">
+            </div>
+            <div class="form-group">
+                <label for="userEmail">이메일</label>
+                <input type="email" id="userEmail" placeholder="이메일을 입력하세요">
+            </div>
+            <div class="form-group">
+                <label for="userPhone">전화번호</label>
+                <input type="tel" id="userPhone" placeholder="전화번호를 입력하세요">
+            </div>
+            <div class="form-group">
+                <label for="ideaCategory">관심 분야</label>
+                <input type="text" id="ideaCategory" placeholder="UI/UX, 기능 개선, 성능 최적화 등">
+            </div>
+            <div class="form-group">
+                <label for="experience">경험 및 간단한 아이디어</label>
+                <input type="text" id="experience" placeholder="앱 사용 경험이나 개선 아이디어를 간단히 적어주세요">
+            </div>
+            <div class="modal-buttons">
+                <button class="modal-btn primary" onclick="submitApplication()">참여 신청</button>
+                <button class="modal-btn secondary" onclick="closeModal()">취소</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 플로팅 알림 -->
+    <div class="floating-stats" id="floatingStats"></div>
+
+    <script>
+        let currentLeague = '';
+
+        // 예측 선택
+        function predict(type, button) {
+            // 같은 섹션의 다른 버튼들에서 selected 클래스 제거
+            const section = button.closest('.prediction-section');
+            const buttons = section.querySelectorAll('.prediction-btn');
+            buttons.forEach(btn => btn.classList.remove('selected'));
+            
+            // 현재 버튼에 selected 클래스 추가
+            button.classList.add('selected');
+            
+            // 플로팅 알림 표시
+            const odds = button.querySelector('.odds').textContent;
+            const team = button.querySelector('span:first-child').textContent;
+            showFloatingStats(`${team} 예측! (${odds})`);
+        }
+
+        // 플로팅 알림 표시
+        function showFloatingStats(message) {
+            const floating = document.getElementById('floatingStats');
+            floating.textContent = message;
+            floating.style.display = 'block';
+            
+            setTimeout(() => {
+                floating.style.display = 'none';
+            }, 2000);
+        }
+
+        // 모달 열기
+        function openModal(leagueType) {
+            currentLeague = leagueType;
+            const modalTitle = document.getElementById('modalTitle');
+            const modalDesc = document.getElementById('modalDesc');
+            
+            if (leagueType === 'livescore') {
+                modalTitle.textContent = '라이브스코어 리그 참여';
+                modalDesc.textContent = '스포츠 앱 기능 개선 아이디어를 제안하고 채택되면 보상을 받으세요!';
+                document.getElementById('ideaCategory').placeholder = 'UI/UX, 실시간 기능, 통계 분석 등';
+            } else if (leagueType === 'hideandseek') {
+                modalTitle.textContent = '하이데어 리그 참여';
+                modalDesc.textContent = 'SNS 기능 개선 아이디어를 제안하고 채택되면 보상을 받으세요!';
+                document.getElementById('ideaCategory').placeholder = '채팅 기능, 커뮤니티, 프로필 등';
+            }
+            
+            document.getElementById('modal').style.display = 'flex';
+        }
+
+        // 모달 닫기
+        function closeModal() {
+            document.getElementById('modal').style.display = 'none';
+        }
+
+        // 신청서 제출
+        async function submitApplication() {
+            const name = document.getElementById('userName').value;
+            const email = document.getElementById('userEmail').value;
+            const phone = document.getElementById('userPhone').value;
+            const category = document.getElementById('ideaCategory').value;
+            const experience = document.getElementById('experience').value;
+            
+            if (!name || !email || !phone) {
+                alert('필수 정보를 모두 입력해주세요.');
+                return;
+            }
+
+            // 로딩 표시
+            const submitBtn = document.querySelector('.modal-btn.primary');
+            const originalText = submitBtn.textContent;
+            submitBtn.textContent = '처리중...';
+            submitBtn.disabled = true;
+
+            try {
+                // 서버리스 함수로 노션 API 호출
+                const response = await fetch('/api/submit-notion', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        name,
+                        email,
+                        phone,
+                        category,
+                        experience,
+                        league: currentLeague
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    closeModal();
+                    
+                    // 폼 초기화
+                    document.getElementById('userName').value = '';
+                    document.getElementById('userEmail').value = '';
+                    document.getElementById('userPhone').value = '';
+                    document.getElementById('ideaCategory').value = '';
+                    document.getElementById('experience').value = '';
+                    
+                    const leagueName = currentLeague === 'livescore' ? '라이브스코어' : '하이데어';
+                    showFloatingStats(`${leagueName} 리그 참여 신청이 노션에 저장되었습니다!`);
+                } else {
+                    alert('신청 처리 중 오류가 발생했습니다: ' + result.error);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('네트워크 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
+            } finally {
+                // 버튼 상태 복원
+                submitBtn.textContent = originalText;
+                submitBtn.disabled = false;
+            }
+        }
+
+        // 모달 외부 클릭 시 닫기
+        window.onclick = function(event) {
+            const modal = document.getElementById('modal');
+            if (event.target === modal) {
+                closeModal();
+            }
+        }
+
+        // 페이지 전체에서 휠 스크롤 이벤트를 앱 콘텐츠로 전달
+        document.addEventListener('wheel', function(e) {
+            const appContent = document.querySelector('.app-content');
+            if (appContent && !document.getElementById('modal').style.display.includes('flex')) {
+                // 모달이 열려있지 않을 때만 스크롤 전달
+                appContent.scrollTop += e.deltaY;
+                e.preventDefault(); // 기본 페이지 스크롤 방지
+            }
+        }, { passive: false });
+
+        // 터치 스크롤도 전체 페이지에서 작동하도록
+        let startY = 0;
+        let scrollStartTop = 0;
+
+        document.addEventListener('touchstart', function(e) {
+            const appContent = document.querySelector('.app-content');
+            if (appContent && !document.getElementById('modal').style.display.includes('flex')) {
+                startY = e.touches[0].clientY;
+                scrollStartTop = appContent.scrollTop;
+            }
+        });
+
+        document.addEventListener('touchmove', function(e) {
+            const appContent = document.querySelector('.app-content');
+            if (appContent && !document.getElementById('modal').style.display.includes('flex')) {
+                const currentY = e.touches[0].clientY;
+                const deltaY = startY - currentY;
+                appContent.scrollTop = scrollStartTop + deltaY;
+                e.preventDefault(); // 기본 터치 스크롤 방지
+            }
+        }, { passive: false });
+
+        // 실시간 스코어 업데이트 시뮬레이션
+        setInterval(() => {
+            if (Math.random() < 0.1) { // 10% 확률로 스코어 변경
+                const scores = document.querySelectorAll('.score');
+                if (scores.length >= 2) {
+                    const homeScore = parseInt(scores[0].textContent);
+                    const awayScore = parseInt(scores[1].textContent);
+                    
+                    if (Math.random() < 0.5) {
+                        scores[0].textContent = homeScore + 1;
+                        showFloatingStats('⚽ 골! 맨시티 득점!');
+                    } else {
+                        scores[1].textContent = awayScore + 1;
+                        showFloatingStats('⚽ 골! 첼시 득점!');
+                    }
+                }
+            }
+        }, 10000);
+
+        // 경기 시간 업데이트
+        setInterval(() => {
+            const timeElement = document.querySelector('.match-time');
+            if (timeElement && timeElement.textContent.includes('진행중')) {
+                const currentTime = parseInt(timeElement.textContent.match(/\d+/)[0]);
+                if (currentTime < 90) {
+                    timeElement.textContent = `진행중 ${currentTime + 1}'`;
+                }
+            }
+        }, 60000);
+    </script>
+</body>
+</html>
