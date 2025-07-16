@@ -783,8 +783,8 @@
             submitBtn.disabled = true;
 
             try {
-                // 서버리스 함수로 노션 API 호출
-                const response = await fetch('/api/submit-notion', {
+                // 서버리스 함수로 노션 API 호출 - 경로 수정
+                const response = await fetch('/api/submit-notion.js', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
